@@ -1,5 +1,8 @@
 using Asp.Versioning;
 using Asp.Versioning.Builder;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using ProductCatalogService.Extensions;
 using ProductCatalogService.Features.Startup;
 using ProductCatalogService.Middleware;
@@ -13,7 +16,32 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateLogger();
 
-builder.Host.UseSerilog();
+builder.UseSerilog();
+
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeFormattedMessage = true;
+    logging.IncludeScopes = true;
+});
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("products-service"))
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation();
+
+        metrics.AddOtlpExporter();
+    })
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation();
+
+        tracing.AddOtlpExporter();
+    });
 
 builder.Services.AddHealthChecks();
 

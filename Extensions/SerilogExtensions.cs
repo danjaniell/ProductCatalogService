@@ -17,8 +17,14 @@ public static class SerilogExtensions
             .ReadFrom.Configuration(context.Configuration)
             .ReadFrom.Services(services)
             .Enrich.FromLogContext()
+            .WriteTo.OpenTelemetry(options =>
+            {
+                options.Endpoint = context.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+                options.ResourceAttributes.Add("service.name", "products-service");
+            })
             .WriteTo.Console()
         );
+
         return hostBuilder;
     }
 }
